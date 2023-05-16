@@ -1,0 +1,40 @@
+build.experiment_name = 'aldy_exps'
+
+# Ensemble parameters
+build.ts_dataset_name = 'sp500'
+build.repeats = 1
+# build.parameters = {'activation': ['sigmoid'], 'loss': ['MSE'], 'hidden_dims' : [[256, 128, 32, 32, 16, 8]]}
+
+instance.train_window = 60  # 3 months
+instance.f_input_window = 40  # 2 months
+instance.horizon = 10  # 2 weeks
+instance.n_test_windows = 6  # 3 months of testing
+instance.n_val_windows = 4  # 2 months of validation
+
+instance.f_model_type = 'TCN_Parameterized'
+instance.f_num_shared_channels = [32, 32, 32, 32]
+instance.f_nbr_param_layers = 1
+instance.f_kernel_size = 2
+instance.f_dropout = 0.2
+
+instance.ae_hidden_dims = [128, 32, 32, 128]
+instance.ts2vec_output_dims = 64
+instance.ts2vec_hidden_dims = 32
+instance.ts2vec_depth = 3
+instance.ts2vec_mask_mode = 'binomial'
+
+instance.activation = 'gelu'
+instance.train_loss_name = 'ALDY'
+instance.val_loss_name = 'MAE'
+instance.lambda1 = 1
+instance.lambda2 = 1
+instance.train_ae_loss = 'MAE'
+instance.train_forecasting_loss ='MAE'
+
+instance.epochs = 100
+instance.iterations = 150
+instance.batch_size = 32
+instance.random_state = 42
+instance.learning_rate = 0.001
+instance.verbose = True
+
