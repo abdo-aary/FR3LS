@@ -3,7 +3,7 @@ import torch as t
 from torch.utils.data import IterableDataset, get_worker_info
 
 
-class TimeSeriesSampler(IterableDataset):
+class DeterministicSampler(IterableDataset):
     def __init__(self,
                  timeseries: np.ndarray,
                  train_window: int,
@@ -14,7 +14,6 @@ class TimeSeriesSampler(IterableDataset):
                  n_val_windows: int,
                  skip_end_n_val=False,
                  shuffle: bool = False,
-                 noise_level: float = None,
                  ):
         """
         Timeseries sampler.
@@ -44,8 +43,6 @@ class TimeSeriesSampler(IterableDataset):
         self.skip_end_n_val = skip_end_n_val
         self.shuffle = shuffle
 
-        self.noise_level = noise_level if noise_level and noise_level != 0 else None
-
         self.train_end_time_point = self.timeseries.shape[0] - (
                 self.n_val_windows + self.n_test_windows) * self.horizon - self.train_window
 
@@ -55,9 +52,6 @@ class TimeSeriesSampler(IterableDataset):
         self.train_batches_indices = np.arange(self.train_end_time_point % self.non_overlap_batch,
                                                self.train_end_time_point + 1,
                                                self.non_overlap_batch)
-
-        self.noisy_timeseries = add_noise_to_timeseries(ts=timeseries,
-                                                        noise_level=self.noise_level) if noise_level else None
 
         # Shuffle these indices
         if self.shuffle:
@@ -75,12 +69,7 @@ class TimeSeriesSampler(IterableDataset):
             # Normalize the training subseries
             y = (y - self.train_ts_means) / self.train_ts_std
             y = y.reshape(1, y.shape[0], y.shape[1])
-            if self.noise_level:
-                y_noisy = self.noisy_timeseries[sampled_index:sampled_index + self.train_window]
-                y_noisy = (y_noisy - self.train_ts_means) / self.train_ts_std
-                y_noisy = y_noisy.reshape(1, y_noisy.shape[0], y_noisy.shape[1])
-                y = np.concatenate((y, y_noisy), axis=0, dtype=y.dtype)
-            yield y  # y of shape (1 or 2, w, N)
+            yield y  # y of shape (1, w, N)
 
     def __len__(self):
         return len(self.train_batches_indices)
@@ -133,15 +122,3 @@ def worker_init_fn(worker_id):
     chunk_start = worker_id * chunk_size
     chunk_end = len(dataset.train_batches_indices) if worker_id == (num_workers - 1) else (chunk_start + chunk_size)
     dataset.train_batches_indices = dataset.train_batches_indices[chunk_start:chunk_end]
-
-
-def add_noise_to_timeseries(ts, noise_level):
-    """
-    Adds random Gaussian noise to a time series dataset.
-    :param ts: A numpy array of shape (T, N) representing the time series data.
-    :param noise_level: The standard deviation of the Gaussian noise to be added.
-    :return: A numpy array of shape (T, N) containing the noisy time series data.
-    """
-    noise = np.random.normal(loc=0, scale=noise_level, size=ts.shape)
-    timeseries_noisy = ts + noise
-    return timeseries_noisy

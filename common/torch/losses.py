@@ -2,8 +2,6 @@ from typing import Callable
 
 import torch as t
 
-from models.ts2vec_models.losses import hierarchical_contrastive_loss, temporal_contrastive_loss
-
 
 def mse_loss(prediction: t.Tensor, target: t.Tensor) -> t.Tensor:
     """
@@ -60,22 +58,6 @@ def rmse_loss(prediction: t.Tensor, target: t.Tensor) -> t.Tensor:
 def mae_rmse_loss(prediction: t.Tensor, target: t.Tensor) -> t.Tensor:
     assert prediction.shape == target.shape
     return (rmse_loss(prediction, target) + mae_loss(prediction, target)) / 2
-
-
-def huber_loss(prediction: t.Tensor, target: t.Tensor, delta=5) -> t.Tensor:
-    """
-    Root Mean Squared Error
-
-    :param delta:
-    :param prediction:
-    :param target:
-    :return:
-    """
-    assert prediction.shape == target.shape
-
-    hubLoss = t.nn.HuberLoss(reduction='mean', delta=delta)
-    return hubLoss(prediction, target)
-
 
 def mape_loss(prediction: t.Tensor, target: t.Tensor) -> t.Tensor:
     """
@@ -136,101 +118,6 @@ def vae_loss(prediction: t.Tensor, target: t.Tensor, mu: t.Tensor, sigma: t.Tens
     # return 0.5 * (kld + ae_loss).mean()
     return kld + ae_loss
 
-
-def aldy_loss(Y: t.Tensor, Y_hat: t.Tensor, X_f_labels: t.Tensor,
-              X_f_total: t.Tensor, R_view1: t.Tensor, R_view2: t.Tensor, lambda1: int = 1,
-              lambda2: int = 1, lambda3: int = 1, train_ae_loss: str = 'MAE',
-              train_forecasting_loss: str = 'MSE'):
-    """
-    Aldy Loss
-
-    :param Y: of shape (N, Lin, C_Y)
-    :param Y_hat: of shape (N, Lin, C_Y)
-    :param X_f_labels: of shape (N2, Lin2, C_X)
-    :param X_f_total: of shape (N2, Lin2, C_X)
-    :param R_view1: of shape (N, Lin, C_R)
-    :param R_view2: of shape (N, Lin, C_R)
-    :param lambda1: weight assigned to the AE loss
-    :param lambda2: weight assigned to the forecasting loss
-    :param lambda3: weight assigned to the hierarchical contrastive loss
-    :param train_ae_loss: Type of AE loss to be used
-    :param train_forecasting_loss: Type of forecasting loss to be used
-    :return:
-    """
-
-    ae_loss_fn = __loss_fn(train_ae_loss)
-    forecasting_loss_fn = __loss_fn(train_forecasting_loss)
-
-    ae_loss_Y = ae_loss_fn(prediction=Y_hat, target=Y)
-    forecasting_loss_X = forecasting_loss_fn(prediction=X_f_total, target=X_f_labels)
-    hier_loss_R = hierarchical_contrastive_loss(R_view1, R_view2)
-
-    loss = lambda1 * ae_loss_Y + lambda2 * forecasting_loss_X + lambda3 * hier_loss_R
-
-    return loss, hier_loss_R
-
-
-def aldy_alternative_loss(Y: t.Tensor, Y_hat: t.Tensor, X_f_labels: t.Tensor,
-                          X_f_total: t.Tensor, R_view1: t.Tensor, R_view2: t.Tensor, lambda1: int = 1,
-                          lambda2: int = 1, lambda3: int = 1, train_ae_loss: str = 'MAE',
-                          train_forecasting_loss: str = 'MSE', use_ts2vec: bool = True):
-    """
-    Aldy Loss
-
-    :param Y: of shape (N, Lin, C_Y)
-    :param Y_hat: of shape (N, Lin, C_Y)
-    :param X_f_labels: of shape (N2, Lin2, C_X)
-    :param X_f_total: of shape (N2, Lin2, C_X)
-    :param R_view1: of shape (N, Lin, C_R)
-    :param R_view2: of shape (N, Lin, C_R)
-    :param lambda1: weight assigned to the AE loss
-    :param lambda2: weight assigned to the forecasting loss
-    :param lambda3: weight assigned to the hierarchical contrastive loss
-    :param train_ae_loss: Type of AE loss to be used
-    :param train_forecasting_loss: Type of forecasting loss to be used
-    :param use_ts2vec:
-    :return:
-    """
-
-    ae_loss_fn = __loss_fn(train_ae_loss)
-    forecasting_loss_fn = __loss_fn(train_forecasting_loss)
-
-    ae_loss_Y = ae_loss_fn(prediction=Y_hat, target=Y)
-    forecasting_loss_X = forecasting_loss_fn(prediction=X_f_total, target=X_f_labels)
-    hier_loss_R = hierarchical_contrastive_loss(R_view1, R_view2) if use_ts2vec else t.tensor(0)
-
-    return ae_loss_Y, forecasting_loss_X, hier_loss_R
-
-
-def tlae_loss(Y: t.Tensor, Y_hat: t.Tensor, X_f_labels: t.Tensor,
-              X_f_total: t.Tensor, lambda1: int = 1,
-              lambda2: int = 1, train_ae_loss: str = 'MAE',
-              train_forecasting_loss: str = 'MAE'):
-    """
-    Tlae Loss
-
-    :param Y: of shape (N, Lin, C_Y)
-    :param Y_hat: of shape (N, Lin, C_Y)
-    :param X_f_labels: of shape (N2, Lin2, C_X)
-    :param X_f_total: of shape (N2, Lin2, C_X)
-    :param lambda1: weight assigned to the AE loss
-    :param lambda2: weight assigned to the forecasting loss
-    :param train_ae_loss: Type of AE loss to be used
-    :param train_forecasting_loss: Type of forecasting loss to be used
-    :return:
-    """
-
-    ae_loss_fn = __loss_fn(train_ae_loss)
-    forecasting_loss_fn = __loss_fn(train_forecasting_loss)
-
-    ae_loss_Y = ae_loss_fn(prediction=Y_hat, target=Y)
-    forecasting_loss_X = forecasting_loss_fn(prediction=X_f_total, target=X_f_labels)
-
-    loss = lambda1 * ae_loss_Y + lambda2 * forecasting_loss_X
-
-    return loss
-
-
 def tempNC_loss(z1: t.Tensor, z2: t.Tensor, lambda_NC: float):
     # z1 & z2 are of shape (bs, w, latent_dim)
     z1, z2 = z1.flatten(0, 1), z2.flatten(0, 1)
@@ -249,15 +136,6 @@ def tempNC_loss(z1: t.Tensor, z2: t.Tensor, lambda_NC: float):
     loss = on_diag + lambda_NC * off_diag
 
     return loss
-
-
-def tempCNC_loss(z1: t.Tensor, z2: t.Tensor, lambda_NC: float):
-    # tempNC = tempNC_loss(z1=z1, z2=z2, lambda_NC=lambda_NC)
-    # tempC = temporal_contrastive_loss(z1=z1, z2=z2)
-    # temp_loss = (tempNC + tempC) / 2
-    # return temp_loss
-    return (tempNC_loss(z1=z1, z2=z2, lambda_NC=lambda_NC) + temporal_contrastive_loss(z1=z1, z2=z2)) / 2
-
 
 def gaussianNLP(x, mu, sigma=1):
     """
@@ -283,28 +161,14 @@ def __loss_fn(loss_name: str) -> Callable:
             return rmse_loss(**kwargs)
         elif loss_name == 'MAE_RMSE':
             return mae_rmse_loss(**kwargs)
-        elif loss_name == 'HUBER':
-            return huber_loss(**kwargs)
         elif loss_name == 'MAPE':
             return mape_loss(**kwargs)
-        elif loss_name == 'ALDY':
-            return aldy_loss(**kwargs)
-        elif loss_name == 'ALDY_ALTERNATIVE':
-            return aldy_alternative_loss(**kwargs)
-        elif loss_name == 'TLAE':
-            return tlae_loss(**kwargs)
-        elif loss_name == 'HIER':
-            return hierarchical_contrastive_loss(**kwargs)
         elif loss_name == 'VAE':
             return vae_loss(**kwargs)
         elif loss_name == 'MSSE':
             return msse_loss(**kwargs)
-        elif loss_name == 'TempC':
-            return temporal_contrastive_loss(**kwargs)
         elif loss_name == 'TempNC':
             return tempNC_loss(**kwargs)
-        elif loss_name == 'TempCNC':
-            return tempCNC_loss(**kwargs)
         elif loss_name == 'KLD':
             return kld_loss(**kwargs)
         elif loss_name == 'GaussianNLP':

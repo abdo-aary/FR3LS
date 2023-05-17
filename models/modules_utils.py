@@ -3,6 +3,8 @@ from typing import Optional
 import torch as t
 import torch.nn.functional as F
 
+import numpy as np
+
 from models.f_models.lstm import LSTM_Modified
 
 
@@ -37,12 +39,6 @@ def activation_layer(activation: str):
     else:
         raise ValueError(f'activation {activation} not implemented')
 
-
-def _init_weights_xavier(m):
-    if isinstance(m, t.nn.Linear):
-        t.nn.init.xavier_uniform_(m.weight)
-
-
 def load_forecasting_model(params: dict) -> t.nn.Module:
 
     if params['model_type'] == 'LSTM_Modified':
@@ -56,3 +52,24 @@ def load_forecasting_model(params: dict) -> t.nn.Module:
         return f_model
     else:
         raise Exception(f"Unknown model {params['model_type']}")
+
+
+def generate_continuous_mask(B, T, n=5, l=0.1):
+    res = t.full((B, T), True, dtype=t.bool)
+    if isinstance(n, float):
+        n = int(n * T)
+    n = max(min(n, T // 2), 1)
+
+    if isinstance(l, float):
+        l = int(l * T)
+    l = max(l, 1)
+
+    for i in range(B):
+        for _ in range(n):
+            k = np.random.randint(T - l + 1)
+            res[i, k:k + l] = False
+    return res
+
+
+def generate_binomial_mask(B, T, p=0.5):
+    return t.from_numpy(np.random.binomial(1, p, size=(B, T))).to(t.bool)

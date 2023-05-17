@@ -4,10 +4,9 @@ from matplotlib import pyplot as plt
 from common.settings import *
 from common.torch.snapshots import SnapshotManager
 from common.utils import read_config_file
-from datasets.datsetsFactory import DatasetsFactory
 
 
-class ALDy_QuickSummary:
+class FR3LS_Summary:
     def __init__(self,
                  ts_dataset_name: str,
                  ):

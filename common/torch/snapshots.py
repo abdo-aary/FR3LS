@@ -12,11 +12,11 @@ import torch as t
 @gin.configurable()
 class SnapshotManager:
     """
-    PyTorch Snapshot Manager.
+    Snapshot Manager.
     Only one, the "latest", state is supported.
     """
 
-    def __init__(self, snapshot_dir: str, losses: list = ['training', 'testing', 'validation'], other_losses: list = []):
+    def __init__(self, snapshot_dir: str, losses: list = ['training', 'testing'], other_losses: list = []):
         self.model_snapshot_file = os.path.join(snapshot_dir, 'model')
         self.optimizer_snapshot_file = os.path.join(snapshot_dir, 'optimizer')
         self.losses_file = os.path.join(snapshot_dir, 'losses')

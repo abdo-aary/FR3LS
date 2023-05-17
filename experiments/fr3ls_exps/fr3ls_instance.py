@@ -1,27 +1,26 @@
-import logging
-import os
-
 import gin
+import logging
 import numpy as np
+import os
 import torch as t
 from fire import Fire
 from torch.utils.data import DataLoader
 
 from common.experiment import Experiment
-from common.sampler_all_noisy import TimeSeriesSampler as Sampler_all_noisy
-from common.sampler_gluonts import TimeSeriesSampler as Sampler_gluonts
-from common.sampler_gluonts import worker_init_fn
+# from common.determinist_sampler import DeterministSampler
+# from common.probabilist_sampler import worker_init_fn, ProbabilistSampler
+from common.sampler import Sampler, worker_init_fn
 from common.settings import DATASETS_PATH
 from common.torch.ops import torch_dtype_dict
 from common.torch.snapshots import SnapshotManager
 from common.utils import count_parameters
 from datasets.load_data_gluonts import load_data_gluonts
-from experiments.trainers.trainer_ae import ae_temp_trainer, ae_temp_trainer_pbbilist
-from models.aldy.aldy_ae_temp import ALDy as ALDy_vanilla_ae
-from models.aldy.aldy_ae_temp_pbbilist import ALDy as ALDy_vanilla_ae_pbbilist
+from experiments.trainers.trainer import trainer_determinist, trainer_probabilist
+from models.fr3ls.fe3ls_determinist import FR3LS_Determinist
+from models.fr3ls.fr3ls_probabilist import FR3LS_Probabilist
 
 
-class ALDyExperiment(Experiment):
+class FR3LS_Experiment(Experiment):
     @gin.configurable
     def instance(self,
                  ts_dataset_name: str,
@@ -42,38 +41,22 @@ class ALDyExperiment(Experiment):
 
                  train_window: int = None,
 
-                 neg_samples_jump: int = None,
-
                  dropout: float = 0.0,  # Dropout used in the AE
 
                  # LSTM model
                  f_hidden_size: int = None,
                  f_num_layers: int = None,
 
-                 # TCN model
-                 f_num_channels: list[int] = None,
-                 f_kernel_size: int = None,
-                 f_leveld_init: bool = None,
-
                  f_dropout: float = 0.0,  # Dropout used in the f_model
-
-                 ts2vec_output_dims: int = None,
-                 ts2vec_hidden_dims: int = None,
-                 ts2vec_depth: int = None,
-                 ts2vec_mask_mode: str = None,
-
-                 num_heads: int = 1000,
-                 trsf_dropout: float = 0.2,
 
                  activation: str = 'relu',
 
                  train_ae_loss: str = 'MAE',
                  train_forecasting_loss: str = 'MSE',
                  test_loss_name: str = 'MAPE',
-                 train_temp_loss: str = 'TempC',
+                 train_temp_loss: str = 'TempNC',
 
                  mask_mode: str = 'binomial',
-                 augV_method: str = 'noise',
 
                  lambda_ae: float = 1,
                  lambda_f: float = 1,
@@ -83,6 +66,7 @@ class ALDyExperiment(Experiment):
                  epochs: int = 750,
                  batch_size: int = 8,
                  random_state: int = 42,
+                 model_random_seed: int = 3407,
                  learning_rate: float = 0.001,
                  repeat: int = 0,
                  num_workers: int = 0,
@@ -92,17 +76,13 @@ class ALDyExperiment(Experiment):
                  patience: int = 5,
                  used_dtype: str = 'float32',
                  device_id: int = None,
-                 n_best_test_losses: int = None,
-                 lr_warmup: int = None,
-                 noise_level: float = None,
+                 n_best_test_losses: int = 50,
+                 lr_warmup: int = 10_000,
                  skip_end_n_val: bool = False,
-                 type_augV_latent: str = None,
-                 direct_decoding: bool = False,
-                 mv_training: bool = False,
                  pretrain_epochs: int = 0,
                  pbbilist_modeling: bool = False,
                  num_samples: int = 1000,
-                 teacher_forcing_ratio: float = 0.65,
+
                  ) -> None:
 
         t.manual_seed(random_state)
@@ -112,7 +92,7 @@ class ALDyExperiment(Experiment):
             print("Data loading ...")
 
         if not train_window:
-            train_window = 2 * f_input_window
+            train_window = 2 * f_input_window  # w = 2 * L
 
         if not ae_hidden_dims:
             if not encoder_dims:
@@ -124,7 +104,8 @@ class ALDyExperiment(Experiment):
 
         # Start data Pretreatment ######################
         if pbbilist_modeling and ts_dataset_name != 'traffic':
-            Sampler = Sampler_gluonts
+            # Only traffic data is not loaded using "load_data_gluonts" function
+
             train_data, test_data_in, test_data_target = load_data_gluonts(name=ts_dataset_name,
                                                                            prediction_length=horizon,
                                                                            num_test_samples=f_input_window,
@@ -146,17 +127,16 @@ class ALDyExperiment(Experiment):
 
             input_dim = train_data.shape[-1]
 
-            ts_sampler = Sampler(train_data=train_data,
-                                 test_data_in=test_data_in,
-                                 test_data_target=test_data_target,
-                                 train_window=train_window,
-                                 f_input_window=f_input_window,
-                                 horizon=horizon,
-                                 non_overlap_batch=non_overlap_batch,
-                                 n_test_windows=n_test_windows,
-                                 n_val_windows=n_val_windows, )
+            sampler = Sampler(train_data=train_data,
+                              test_data_in=test_data_in,
+                              test_data_target=test_data_target,
+                              train_window=train_window,
+                              f_input_window=f_input_window,
+                              horizon=horizon,
+                              non_overlap_batch=non_overlap_batch,
+                              n_test_windows=n_test_windows,
+                              n_val_windows=n_val_windows, )
         else:
-            Sampler = Sampler_all_noisy
             dataset_path = os.path.join(DATASETS_PATH, ts_dataset_name, ts_dataset_name + '.npy')
             ts_samples = np.load(dataset_path).transpose()  # ts_samples of shape (T, N)
             ts_samples = ts_samples.astype(np.dtype(used_dtype))
@@ -166,27 +146,26 @@ class ALDyExperiment(Experiment):
                     n_val_windows + n_test_windows) * horizon - train_window
             train_ts_std = np.nanstd(ts_samples[:train_end_time_point + train_window], axis=0)
 
-            used_mask = np.where(train_ts_std != 0)[0]
+            used_mask = np.where(train_ts_std != 0)[0]  # We only use variables that don't have 0 as std
             ts_samples = ts_samples[:, used_mask]
             print("ts_samples.shape =", ts_samples.shape)
             # End data Pretreatment ########################
 
             input_dim = ts_samples.shape[-1]
 
-            ts_sampler = Sampler(timeseries=ts_samples,
-                                 train_window=train_window,
-                                 f_input_window=f_input_window,
-                                 horizon=horizon,
-                                 non_overlap_batch=non_overlap_batch,
-                                 n_test_windows=n_test_windows,
-                                 n_val_windows=n_val_windows,
-                                 skip_end_n_val=(ts_dataset_name == 'electricity' and skip_end_n_val),
-                                 noise_level=noise_level)
+            sampler = Sampler(timeseries=ts_samples,
+                              train_window=train_window,
+                              f_input_window=f_input_window,
+                              horizon=horizon,
+                              non_overlap_batch=non_overlap_batch,
+                              n_test_windows=n_test_windows,
+                              n_val_windows=n_val_windows,
+                              skip_end_n_val=(ts_dataset_name == 'electricity' and skip_end_n_val))
 
-        dataloader = DataLoader(ts_sampler, batch_size=batch_size, num_workers=num_workers,
+        dataLoader = DataLoader(sampler, batch_size=batch_size, num_workers=num_workers,
                                 worker_init_fn=worker_init_fn, drop_last=False, pin_memory=True)
 
-        print('ts_sampler =', ts_sampler)
+        print('sampler =', sampler)
 
         if verbose:
             print("\n\nModel Training ...")
@@ -194,7 +173,7 @@ class ALDyExperiment(Experiment):
                                             for i in range(len(ae_hidden_dims) - 1)]) != 0)[0][0]
         latent_dim = ae_hidden_dims[idx_hidden_dim]
 
-        if f_model_type in ['LSTM_Modified', 'RNN_SEQ2SEQ']:
+        if f_model_type == 'LSTM_Modified':
             f_model_params = {'model_type': f_model_type,
                               'input_size': latent_dim,
                               'output_size': latent_dim,
@@ -202,24 +181,11 @@ class ALDyExperiment(Experiment):
                               'num_layers': f_num_layers,
                               'dropout': f_dropout,
                               'batch_first': True,
-                              'teacher_forcing_ratio': teacher_forcing_ratio}
-
-        elif f_model_type == 'TCN_Modified':
-            f_model_params = {'model_type': f_model_type,
-                              'num_inputs': latent_dim,
-                              'output_size': latent_dim,
-                              'num_channels': f_num_channels,
-                              'kernel_size': f_kernel_size,
-                              'dropout': f_dropout,
-                              'leveld_init': f_leveld_init}
-
+                              }
         else:
             raise Exception(f"Unknown f_model {f_model_type}")
 
-        if pbbilist_modeling:
-            Model = ALDy_vanilla_ae_pbbilist
-        else:
-            Model = ALDy_vanilla_ae
+        Model = FR3LS_Probabilist if pbbilist_modeling else FR3LS_Determinist
 
         print('Model =', Model)
 
@@ -229,18 +195,9 @@ class ALDyExperiment(Experiment):
                       mask_mode=mask_mode,
                       f_input_window=f_input_window,
                       train_window=train_window,
-                      ts2vec_output_dims=ts2vec_output_dims,
-                      ts2vec_hidden_dims=ts2vec_hidden_dims,
-                      ts2vec_depth=ts2vec_depth,
-                      ts2vec_mask_mode=ts2vec_mask_mode,
                       dropout=dropout,
                       activation=activation,
-                      type_augV_latent=type_augV_latent,
-                      direct_decoding=direct_decoding,
-                      augV_method=augV_method,
-                      num_heads=num_heads,
-                      trsf_dropout=trsf_dropout,
-                      teacher_forcing_ratio=teacher_forcing_ratio,
+                      model_random_seed=model_random_seed,
                       )
 
         if verbose:
@@ -254,38 +211,34 @@ class ALDyExperiment(Experiment):
             other_losses=['MAPE', 'WAPE', 'SMAPE'] if not pbbilist_modeling else [],
         )
 
-        if pbbilist_modeling:
-            trainer = ae_temp_trainer_pbbilist
-        else:
-            # trainer = ae_pretraining_temp_trainer if pretrain_epochs > 0 else ae_temp_trainer
-            trainer = ae_temp_trainer
+        trainer = trainer_probabilist if pbbilist_modeling else trainer_determinist
 
         print('trainer =', trainer)
 
-        _ = trainer(snapshot_manager=snapshot_manager,
-                    model=model,
-                    dataLoader=dataloader,
-                    horizon=horizon,
-                    train_ae_loss=train_ae_loss,
-                    train_forecasting_loss=train_forecasting_loss,
-                    train_temp_loss=train_temp_loss,
-                    test_loss_name=test_loss_name,
-                    lambda_ae=lambda_ae,
-                    lambda_f=lambda_f,
-                    lambda_NC=lambda_NC,
-                    lambda_temp=lambda_temp,
-                    epochs=epochs,
-                    learning_rate=learning_rate,
-                    verbose=verbose,
-                    pbar_percentage=pbar_percentage,
-                    early_stopping=early_stopping,
-                    patience=patience,
-                    device_id=device_id,
-                    n_best_test_losses=n_best_test_losses,
-                    lr_warmup=lr_warmup,
-                    mv_training=mv_training,
-                    pretrain_epochs=pretrain_epochs,
-                    num_samples=num_samples)
+        trainer(snapshot_manager=snapshot_manager,
+                model=model,
+                dataLoader=dataLoader,
+                sampler=sampler,
+                horizon=horizon,
+                train_ae_loss=train_ae_loss,
+                train_forecasting_loss=train_forecasting_loss,
+                train_temp_loss=train_temp_loss,
+                test_loss_name=test_loss_name,
+                lambda_ae=lambda_ae,
+                lambda_f=lambda_f,
+                lambda_NC=lambda_NC,
+                lambda_temp=lambda_temp,
+                epochs=epochs,
+                learning_rate=learning_rate,
+                verbose=verbose,
+                pbar_percentage=pbar_percentage,
+                early_stopping=early_stopping,
+                patience=patience,
+                device_id=device_id,
+                n_best_test_losses=n_best_test_losses,
+                lr_warmup=lr_warmup,
+                pretrain_epochs=pretrain_epochs,
+                num_samples=num_samples)
 
         if verbose:
             print("\n\n##############################################################")
@@ -295,4 +248,4 @@ class ALDyExperiment(Experiment):
 
 if __name__ == '__main__':
     logging.root.setLevel(logging.INFO)
-    Fire(ALDyExperiment)
+    Fire(FR3LS_Experiment)
