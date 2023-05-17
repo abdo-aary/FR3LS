@@ -22,9 +22,7 @@ function gdrive-get() {
 mkdir -p storage/datasets/electricity/
 mkdir -p storage/datasets/traffic/
 mkdir -p storage/datasets/wiki/
-mkdir -p storage/datasets/pems/
 
 gdrive-get 1UUwvY8Ixbwt3_fyDlJM80spZpgoOexRl storage/datasets/electricity/electricity.npy
 gdrive-get 1dyeYj8IJwZ3bKvk1H67eaDTANdapKe7w storage/datasets/traffic/traffic.npy
 gdrive-get 1VytXoL_vkrLqXxCR5IOXgE45hN2UL5oB storage/datasets/wiki/wiki.npy
-gdrive-get 1AE_s47dpRuSFgRREb_8jcVJij0kxaaHs storage/datasets/pems/pems.npy

@@ -19,12 +19,6 @@ from datasets.load_data_gluonts import load_data_gluonts
 from experiments.trainers.trainer_ae import ae_temp_trainer, ae_temp_trainer_pbbilist
 from models.aldy.aldy_ae_temp import ALDy as ALDy_vanilla_ae
 from models.aldy.aldy_ae_temp_pbbilist import ALDy as ALDy_vanilla_ae_pbbilist
-from models.aldy.aldy_conv_Interpol.aldy_conv_Interpol_ae_temp import ALDy as ALDy_Conv_Inter_ae
-from models.aldy.aldy_conv_Interpol.aldy_conv_Interpol_ae_temp_v2 import ALDy as ALDy_Conv_Inter_ae_v2
-from models.aldy.aldy_conv_Interpol.aldy_conv_Interpol_ae_temp_v3 import ALDy as ALDy_Conv_Inter_ae_v3
-from models.aldy.aldy_conv_ae_temp import ALDy as ALDy_Vanilla_conv_ae
-from models.fr3ls.fr3ls_att_ae_temp import FR3LS
-from models.fr3ls.fr3ls_sq2sq_ae_temp import FR3LS as FR3LS_sq2sq
 
 
 class ALDyExperiment(Experiment):
@@ -222,29 +216,10 @@ class ALDyExperiment(Experiment):
         else:
             raise Exception(f"Unknown f_model {f_model_type}")
 
-        if 'VANILLA_CONV' in train_mode:
-            Model = ALDy_Vanilla_conv_ae
-        elif 'CONV_INTER_v2' in train_mode:
-            Model = ALDy_Conv_Inter_ae_v2
-        elif 'CONV_INTER_v3' in train_mode:
-            Model = ALDy_Conv_Inter_ae_v3
-        elif 'CONV_INTER' in train_mode:
-            Model = ALDy_Conv_Inter_ae
+        if pbbilist_modeling:
+            Model = ALDy_vanilla_ae_pbbilist
         else:
-            if pbbilist_modeling:
-                # if 'FR3LS' in train_mode:
-                #     Model = FR3LS
-                # else:
-                Model = ALDy_vanilla_ae_pbbilist
-            else:
-                # if mv_training:
-                #     Model = mv_ALDy_vanilla_ae
-                if 'FR3LS' == train_mode:
-                    Model = FR3LS
-                elif 'FR3LS_sq2sq' == train_mode:
-                    Model = FR3LS_sq2sq
-                else:
-                    Model = ALDy_vanilla_ae
+            Model = ALDy_vanilla_ae
 
         print('Model =', Model)
 

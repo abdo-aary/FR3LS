@@ -50,17 +50,6 @@ def to_tensor(array: Union[np.ndarray, None], device: Union[str, t.device] = Non
     return t.tensor(array, device=used_device)
 
 
-# def manual_to_tensor(array: np.ndarray, device_id='cpu') -> t.Tensor:
-#     """
-#     Convert numpy array to tensor on manual fixed device regardless of the default config.
-#
-#     :param device_id:
-#     :param array: Numpy array to convert.
-#     :return: PyTorch tensor on default device.
-#     """
-#     return t.tensor(array, dtype=t.float32).to(t.device(device_id))
-
-
 def divide_no_nan(a: t.Tensor, b: t.Tensor) -> t.Tensor:
     """
     a/b where the resulted NaN or Inf are replaced by 0.

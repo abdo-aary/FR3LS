@@ -21,12 +21,9 @@ class LSTM_Modified(nn.Module):
 
         self.fc = nn.Linear(in_features=hidden_size, out_features=output_size)
 
-    def forward(self, x: t.Tensor, f_out_same_in_size: bool = False):
+    def forward(self, x: t.Tensor):
         # x should be of shape (N, Lin, Cin) Cin = nbr of channels, Lin = length of signal sequence
 
         output, (_, _) = self.lstm(x)  # output of shape (N, Lin, C_h)
 
-        if f_out_same_in_size:
-            return self.fc(output) if self.fc else output
-        else:
-            return self.fc(output[:, -1, :]) if self.fc else output[:, -1, :]
+        return self.fc(output[:, -1, :]) if self.fc else output[:, -1, :]  # Return the last lstm output only

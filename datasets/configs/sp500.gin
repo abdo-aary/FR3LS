@@ -1,3 +1,0 @@
-download.ts_dataset_name = 'sp500'
-download.id_col = 'Symbol'
-download.delete_cache = True
