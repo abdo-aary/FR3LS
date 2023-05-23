@@ -33,7 +33,7 @@ class FR3LS_Determinist(nn.Module):
         """
 
         super(FR3LS_Determinist, self).__init__()
-        assert len(ae_hidden_dims) > 2, "ae_hidden_dims should be of length > 2"
+        assert len(ae_hidden_dims) >= 2, "ae_hidden_dims should be of length >= 2"
 
         idx_hidden_dim = len(ae_hidden_dims) // 2 - 1
 

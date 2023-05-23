@@ -5,9 +5,11 @@ from tqdm import tqdm
 
 from common.sampler import Sampler
 from common.torch import CRPS
-from common.torch.losses import __loss_fn, wape_loss, smape_loss, mape_loss
+from common.torch.losses import loss_fn, wape_loss, smape_loss, mape_loss
 from common.torch.ops import default_device, to_tensor
 from common.torch.snapshots import SnapshotManager
+
+import warnings
 
 
 def trainer_determinist(snapshot_manager: SnapshotManager,
@@ -32,20 +34,21 @@ def trainer_determinist(snapshot_manager: SnapshotManager,
                         device_id: int = None,
                         n_best_test_losses: int = None,
                         lr_warmup: int = None,
-                        pretrain_epochs: int = 0,
+                        **kwargs,
                         ):
     device = default_device(device_str_id=device_id)
     print("device =", device)
 
     optimizer = t.optim.Adam(model.parameters(), lr=learning_rate)
-    forecasting_loss_fn = __loss_fn(train_forecasting_loss)
-    ae_loss_fn = __loss_fn(train_ae_loss)
-    temp_loss_fn = __loss_fn(train_temp_loss)
-    test_forecasting_loss_fn = __loss_fn(test_loss_name)
+    forecasting_loss_fn = loss_fn(train_forecasting_loss)
+    ae_loss_fn = loss_fn(train_ae_loss)
+    temp_loss_fn = loss_fn(train_temp_loss)
+    test_forecasting_loss_fn = loss_fn(test_loss_name)
+
+    model = model.to(device)
 
     epoch = snapshot_manager.restore(model, optimizer)
 
-    model = model.to(device)
     snapshot_manager.enable_time_tracking()
 
     scheduler = t.optim.lr_scheduler.LambdaLR(optimizer,
@@ -58,19 +61,7 @@ def trainer_determinist(snapshot_manager: SnapshotManager,
         min_loss_mape = np.inf
         num_no_improve = 0
 
-        ae_pretraining = True
-        f_model_pretraining = False
-
         for epoch_i in range(epoch + 1, epochs + 1):
-            if epoch_i > pretrain_epochs // 2:
-                if ae_pretraining:
-                    ae_pretraining = False
-                    print('AE Pretraining is finished')
-                if not f_model_pretraining and epoch_i <= pretrain_epochs:
-                    f_model_pretraining = True
-                elif f_model_pretraining and epoch_i > pretrain_epochs:
-                    f_model_pretraining = False
-                    print('f_model Pretraining is finished')
 
             optimized = False
 
@@ -93,21 +84,10 @@ def trainer_determinist(snapshot_manager: SnapshotManager,
                 if len(y.shape) == 4:  # Reshape the input subseries to have a shape of 3 dimensions
                     y = y.view(y.shape[0] * y.shape[1], y.shape[2], y.shape[3])
 
-                if ae_pretraining:
-                    y_hat, x_v1, x_v2, _, _ = model(y, use_f_m=False)
-                    ae_loss = ae_loss_fn(prediction=y_hat, target=y)
-                    f_loss = 0
-                    temp_loss = temp_loss_fn(z1=x_v1, z2=x_v2, lambda_NC=lambda_NC) if lambda_temp > 0 else 0
-                elif f_model_pretraining:
-                    _, _, _, x_f_labels, x_f = model(y, use_f_m=True)
-                    ae_loss = 0
-                    f_loss = forecasting_loss_fn(prediction=x_f, target=x_f_labels)
-                    temp_loss = 0
-                else:
-                    y_hat, x_v1, x_v2, x_f_labels, x_f = model(y, use_f_m=True)
-                    ae_loss = ae_loss_fn(prediction=y_hat, target=y)
-                    f_loss = forecasting_loss_fn(prediction=x_f, target=x_f_labels)
-                    temp_loss = temp_loss_fn(z1=x_v1, z2=x_v2, lambda_NC=lambda_NC) if lambda_temp > 0 else 0
+                y_hat, x_v1, x_v2, x_f_labels, x_f = model(y, use_f_m=True)
+                ae_loss = ae_loss_fn(prediction=y_hat, target=y)
+                f_loss = forecasting_loss_fn(prediction=x_f, target=x_f_labels)
+                temp_loss = temp_loss_fn(z1=x_v1, z2=x_v2, lambda_NC=lambda_NC) if lambda_temp > 0 else 0
 
                 training_batch_loss = lambda_ae * ae_loss + lambda_f * f_loss + lambda_temp * temp_loss
 
@@ -212,20 +192,24 @@ def trainer_probabilist(snapshot_manager: SnapshotManager,
                         device_id: int = None,
                         n_best_test_losses: int = None,
                         lr_warmup: int = None,
-                        pretrain_epochs: int = 0,
                         num_samples: int = 1000,
+                        **kwargs
                         ):
     device = default_device(device_str_id=device_id)
 
+    print("device_id =", device_id)
+    print("device =", device)
+
     optimizer = t.optim.Adam(model.parameters(), lr=learning_rate)
-    forecasting_loss_fn = __loss_fn(train_forecasting_loss)
-    ae_loss_fn = __loss_fn(train_ae_loss)
-    temp_loss_fn = __loss_fn(train_temp_loss)
-    test_forecasting_loss_fn = __loss_fn(test_loss_name)
+    forecasting_loss_fn = loss_fn(train_forecasting_loss)
+    ae_loss_fn = loss_fn(train_ae_loss)
+    temp_loss_fn = loss_fn(train_temp_loss)
+    test_forecasting_loss_fn = loss_fn(test_loss_name)
+
+    model = model.to(device)
 
     epoch = snapshot_manager.restore(model, optimizer)
 
-    model = model.to(device)
     snapshot_manager.enable_time_tracking()
 
     scheduler = t.optim.lr_scheduler.LambdaLR(optimizer,
@@ -237,19 +221,7 @@ def trainer_probabilist(snapshot_manager: SnapshotManager,
         min_loss_test = np.inf
         num_no_improve = 0
 
-        ae_pretraining = True
-        f_model_pretraining = False
-
         for epoch_i in range(epoch + 1, epochs + 1):
-            if epoch_i > pretrain_epochs // 2:
-                if ae_pretraining:
-                    ae_pretraining = False
-                    print('AE Pretraining is finished')
-                if not f_model_pretraining and epoch_i <= pretrain_epochs:
-                    f_model_pretraining = True
-                elif f_model_pretraining and epoch_i > pretrain_epochs:
-                    f_model_pretraining = False
-                    print('f_model Pretraining is finished')
 
             optimized = False
 
@@ -270,21 +242,10 @@ def trainer_probabilist(snapshot_manager: SnapshotManager,
                 if len(y.shape) == 4:
                     y = y.view(y.shape[0] * y.shape[1], y.shape[2], y.shape[3])
 
-                if ae_pretraining:
-                    y_hat, x_v1, x_v2, _, _ = model(y, use_f_m=False)
-                    ae_loss = ae_loss_fn(prediction=y_hat, target=y)
-                    f_loss = 0
-                    temp_loss = temp_loss_fn(z1=x_v1, z2=x_v2, lambda_NC=lambda_NC) if lambda_temp > 0 else 0
-                elif f_model_pretraining:
-                    _, _, _, x_f_labels, x_f = model(y, use_f_m=True)
-                    ae_loss = 0
-                    f_loss = forecasting_loss_fn(prediction=x_f, target=x_f_labels)
-                    temp_loss = 0
-                else:
-                    y_hat, x_v1, x_v2, x_f_labels, x_f = model(y, use_f_m=True)
-                    ae_loss = ae_loss_fn(prediction=y_hat, target=y)
-                    f_loss = forecasting_loss_fn(prediction=x_f, target=x_f_labels)
-                    temp_loss = temp_loss_fn(z1=x_v1, z2=x_v2, lambda_NC=lambda_NC) if lambda_temp > 0 else 0
+                y_hat, x_v1, x_v2, x_f_labels, x_f = model(y, use_f_m=True)
+                ae_loss = ae_loss_fn(prediction=y_hat, target=y)
+                f_loss = forecasting_loss_fn(prediction=x_f, target=x_f_labels)
+                temp_loss = temp_loss_fn(z1=x_v1, z2=x_v2, lambda_NC=lambda_NC) if lambda_temp > 0 else 0
 
                 training_batch_loss = lambda_ae * ae_loss + lambda_f * f_loss + lambda_temp * temp_loss
 
@@ -361,6 +322,8 @@ def trainer_probabilist(snapshot_manager: SnapshotManager,
                 snapshot_manager.print_losses(top_best=n_best_test_losses)
 
         # Reload the best model
+        warnings.filterwarnings("ignore", message="Warning: converting a masked element to nan")
+
         _ = snapshot_manager.restore(model, optimizer)
         with t.no_grad():
             model.eval()

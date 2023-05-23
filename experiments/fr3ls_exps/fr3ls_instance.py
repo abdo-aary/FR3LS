@@ -7,8 +7,6 @@ from fire import Fire
 from torch.utils.data import DataLoader
 
 from common.experiment import Experiment
-# from common.determinist_sampler import DeterministSampler
-# from common.probabilist_sampler import worker_init_fn, ProbabilistSampler
 from common.sampler import Sampler, worker_init_fn
 from common.settings import DATASETS_PATH
 from common.torch.ops import torch_dtype_dict
@@ -27,7 +25,6 @@ class FR3LS_Experiment(Experiment):
 
                  train_mode: str,  # Alternative or not
                  f_input_window: int,
-                 f_out_same_in_size: bool,
                  horizon: int,
                  n_test_windows: int,
                  n_val_windows: int,
@@ -79,7 +76,6 @@ class FR3LS_Experiment(Experiment):
                  n_best_test_losses: int = 50,
                  lr_warmup: int = 10_000,
                  skip_end_n_val: bool = False,
-                 pretrain_epochs: int = 0,
                  pbbilist_modeling: bool = False,
                  num_samples: int = 1000,
 
@@ -109,7 +105,8 @@ class FR3LS_Experiment(Experiment):
             train_data, test_data_in, test_data_target = load_data_gluonts(name=ts_dataset_name,
                                                                            prediction_length=horizon,
                                                                            num_test_samples=f_input_window,
-                                                                           dtype=torch_dtype_dict[used_dtype])
+                                                                           dtype=torch_dtype_dict[used_dtype],
+                                                                           verbose=verbose)
             train_data = train_data.detach().cpu().numpy()
             test_data_in = test_data_in.detach().cpu().numpy()
             test_data_target = test_data_target.detach().cpu().numpy()
@@ -169,8 +166,7 @@ class FR3LS_Experiment(Experiment):
 
         if verbose:
             print("\n\nModel Training ...")
-        idx_hidden_dim = np.where(np.array([i if ae_hidden_dims[i] == ae_hidden_dims[i + 1] else 0
-                                            for i in range(len(ae_hidden_dims) - 1)]) != 0)[0][0]
+        idx_hidden_dim = len(ae_hidden_dims) // 2 - 1
         latent_dim = ae_hidden_dims[idx_hidden_dim]
 
         if f_model_type == 'LSTM_Modified':
@@ -237,7 +233,6 @@ class FR3LS_Experiment(Experiment):
                 device_id=device_id,
                 n_best_test_losses=n_best_test_losses,
                 lr_warmup=lr_warmup,
-                pretrain_epochs=pretrain_epochs,
                 num_samples=num_samples)
 
         if verbose:

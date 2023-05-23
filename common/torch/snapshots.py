@@ -16,7 +16,7 @@ class SnapshotManager:
     Only one, the "latest", state is supported.
     """
 
-    def __init__(self, snapshot_dir: str, losses: list = ['training', 'testing'], other_losses: list = []):
+    def __init__(self, snapshot_dir: str, losses: list = ['training', 'testing'], other_losses: list = [], verbose: bool = True):
         self.model_snapshot_file = os.path.join(snapshot_dir, 'model')
         self.optimizer_snapshot_file = os.path.join(snapshot_dir, 'optimizer')
         self.losses_file = os.path.join(snapshot_dir, 'losses')
@@ -29,6 +29,7 @@ class SnapshotManager:
         self.losses = {loss_name: {} for loss_name in losses}
         self.losses.update(other_losses_dict)
         self.time_track = {}
+        self.verbose = verbose
 
         self.enable_time_tracking()
 
@@ -42,11 +43,13 @@ class SnapshotManager:
         :return: epoch number.
         """
         if model is not None and os.path.isfile(self.model_snapshot_file):
-            print("Model of path \"" + self.model_snapshot_file + "\" restored successfully")
+            if self.verbose:
+                print("Model of path \"" + self.model_snapshot_file + "\" restored successfully")
             model.load_state_dict(t.load(self.model_snapshot_file))
 
         if optimizer is not None and os.path.isfile(self.optimizer_snapshot_file):
-            print("Optimizer of path \"" + self.optimizer_snapshot_file + "\" restored successfully")
+            if self.verbose:
+                print("Optimizer of path \"" + self.optimizer_snapshot_file + "\" restored successfully")
             optimizer.load_state_dict(t.load(self.optimizer_snapshot_file))
 
         epoch = t.load(self.epoch_file)['epoch'] if os.path.isfile(self.epoch_file) else 0

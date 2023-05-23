@@ -19,6 +19,26 @@ function gdrive-get() {
     fi
 }
 
+function github-get() {
+    url=$1
+    filename=$2
+    output_dir=$3
+    if [[ "${url}" == "" || "${filename}" == "" || "${output_dir}" == "" ]]; then
+        echo "download_dataset url filename output_dir"
+        return 1
+    else
+        echo "Downloading ${filename} from ${url} to ${output_dir}..."
+        curl -LJO ${url}/${filename}
+        mv ${filename} ${output_dir}/
+        return 0
+    fi
+}
+base_dir="storage/datasets/unextracted_ds"
+
+base_url="https://github.com/mbohlkeschneider/gluon-ts/raw/mv_release/datasets"
+
+mkdir -p ${base_dir}
+
 mkdir -p storage/datasets/electricity/
 mkdir -p storage/datasets/traffic/
 mkdir -p storage/datasets/wiki/
@@ -26,3 +46,8 @@ mkdir -p storage/datasets/wiki/
 gdrive-get 1UUwvY8Ixbwt3_fyDlJM80spZpgoOexRl storage/datasets/electricity/electricity.npy
 gdrive-get 1dyeYj8IJwZ3bKvk1H67eaDTANdapKe7w storage/datasets/traffic/traffic.npy
 gdrive-get 1VytXoL_vkrLqXxCR5IOXgE45hN2UL5oB storage/datasets/wiki/wiki.npy
+
+github-get ${base_url} electricity_nips.tar.gz ${base_dir}
+github-get ${base_url} solar_nips.tar.gz ${base_dir}
+github-get ${base_url} taxi_30min.tar.gz ${base_dir}
+github-get ${base_url} wiki-rolling_nips.tar.gz ${base_dir}

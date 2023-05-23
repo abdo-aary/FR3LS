@@ -104,20 +104,6 @@ def wape_loss(prediction: t.Tensor, target: t.Tensor):
     return ((target[nan_mask] - prediction[nan_mask]).abs()).mean() / target[nan_mask].abs().mean()
 
 
-def kld_loss(mu: t.Tensor, sigma: t.Tensor):
-    kld = (sigma ** 2 + mu ** 2 - 1 - t.log(sigma ** 2)).sum(dim=-1).mean()  # KL divergence
-    return kld
-
-
-def vae_loss(prediction: t.Tensor, target: t.Tensor, mu: t.Tensor, sigma: t.Tensor):
-    kld = (sigma ** 2 + mu ** 2 - 1 - t.log(sigma ** 2)).sum(dim=-1).mean()  # KL divergence
-
-    # ae_loss = ((prediction - target) ** 2).sum(dim=-1)
-    ae_loss = mae_loss(prediction, target)
-
-    # return 0.5 * (kld + ae_loss).mean()
-    return kld + ae_loss
-
 def tempNC_loss(z1: t.Tensor, z2: t.Tensor, lambda_NC: float):
     # z1 & z2 are of shape (bs, w, latent_dim)
     z1, z2 = z1.flatten(0, 1), z2.flatten(0, 1)
@@ -137,21 +123,8 @@ def tempNC_loss(z1: t.Tensor, z2: t.Tensor, lambda_NC: float):
 
     return loss
 
-def gaussianNLP(x, mu, sigma=1):
-    """
-    Calculate negative log likelihood of Gaussian distribution
-    :param mu: mean of shape (b, tw-fw, dim)
-    :param sigma: = 1
-    :param x: random variable - tensor of size (b, tw-fw, dim)
-    """
-    n_b = x.shape[0] * x.shape[1]  # We need to di vide along number of vectors = b * (tw - fw)
 
-    negative_log_prob = 0.5 * ( t.log(t.tensor(2 * t.pi)) + (x - mu).pow(2).sum() )
-    negative_log_prob /= n_b
-    return negative_log_prob
-
-
-def __loss_fn(loss_name: str) -> Callable:
+def loss_fn(loss_name: str) -> Callable:
     def loss(**kwargs):
         if loss_name == 'MSE':
             return mse_loss(**kwargs)
@@ -169,10 +142,6 @@ def __loss_fn(loss_name: str) -> Callable:
             return msse_loss(**kwargs)
         elif loss_name == 'TempNC':
             return tempNC_loss(**kwargs)
-        elif loss_name == 'KLD':
-            return kld_loss(**kwargs)
-        elif loss_name == 'GaussianNLP':
-            return gaussianNLP(**kwargs)
         else:
             raise Exception(f'Unknown loss function: {loss_name}')
 

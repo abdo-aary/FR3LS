@@ -1,18 +1,17 @@
-build.experiment_name = 'aldy_exps'
+build.experiment_name = 'fr3ls_det_exps'
 
 # Ensemble parameters
 build.ts_dataset_name = 'electricity'
 build.repeats = 1
 
-build.parameters = {'train_mode': ['AE_Temp'], 'batch_size': [1], 'non_overlap_batch': [12], 'f_input_window': [64], 'encoder_dims': [[96, 64, 32]], 'augV_method': ['noise'], 'type_augV_latent': [None], 'n_val_windows': [2], 'pretrain_epochs': [300]}
+build.parameters = {'train_mode': ['FR3LS-Det'], 'f_input_window': [64], 'encoder_dims': [[256, 128, 64]], 'non_overlap_batch': [24]}
 
-#### instance.train_window = 388  # train_window = 2 * f_input_window
-#### instance.f_input_window = 194  # 8.0833 days (was 1 week)
-instance.f_out_same_in_size = False  # Forecast only the last value
-instance.horizon = 24  # 1 day
+#### instance.train_window = 128  # train_window = 2 * f_input_window
+#### instance.f_input_window = 64
+instance.horizon = 24
 instance.non_overlap_batch = 24
-instance.n_test_windows = 7  # 7 days of testing
-#### instance.n_val_windows = 2  # 2 days of validation
+instance.n_test_windows = 7
+instance.n_val_windows = 2  # put here just to match TLAE's exp setting
 instance.shuffle = False
 
 instance.f_model_type = 'LSTM_Modified'
@@ -39,21 +38,20 @@ instance.lambda_f = 1
 instance.lambda_temp = 1
 instance.lambda_NC = 5e-3
 
-instance.epochs = 1050
-#### instance.batch_size = 4
+instance.epochs = 750
+instance.batch_size = 1
 instance.num_workers = 4
 instance.random_state = 42
+instance.model_random_seed = 3407
 instance.learning_rate = 0.0001
 instance.verbose = True
 instance.pbar_percentage = 20
 instance.early_stopping = False
 instance.used_dtype = 'float32'
 instance.patience = 100
-instance.device_id = 0
+instance.device_id = 1
 instance.n_best_test_losses = 50
 instance.lr_warmup = 10_000
-instance.noise_level = 0
 instance.skip_end_n_val = True
-#### instance.pretrain_epochs = 0
 instance.pbbilist_modeling = False
 

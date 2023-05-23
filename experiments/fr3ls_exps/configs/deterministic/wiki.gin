@@ -1,22 +1,21 @@
-build.experiment_name = 'aldy_exps'
+build.experiment_name = 'fr3ls_det_exps'
 
 # Ensemble parameters
 build.ts_dataset_name = 'wiki'
 build.repeats = 1
 
-build.parameters = {'train_mode': ['AE_Temp'], 'batch_size': [1], 'non_overlap_batch': [1], 'f_input_window': [24], 'encoder_dims': [[64, 32]], 'augV_method': ['noise'], 'type_augV_latent': [None], 'pretrain_epochs': [100]}
+build.parameters = {'train_mode': ['FR3LS-Det'], 'f_input_window': [16], 'encoder_dims': [[128, 64, 32]], 'non_overlap_batch': [1]}
 
-#### instance.train_window = 256  # train_window = 2 * f_input_window
-#### instance.f_input_window = 128  # 8.0833 days (was 1 week)
-instance.f_out_same_in_size = False  # Forecast only the last value
-instance.horizon = 14  # 1 day
+#### instance.train_window = 32  # train_window = 2 * f_input_window
+#### instance.f_input_window = 16
+instance.horizon = 14
 #### instance.non_overlap_batch = 6
-instance.n_test_windows = 4  # 7 days of testing
-instance.n_val_windows = 0  # 0 days of validation
+instance.n_test_windows = 4
+instance.n_val_windows = 0
 instance.shuffle = False
 
 instance.f_model_type = 'LSTM_Modified'
-#### instance.ae_hidden_dims = [64, 32, 32, 64]
+#### instance.ae_hidden_dims = [128, 64, 32, 32, 64, 128]
 
 instance.dropout = 0.0
 
@@ -30,7 +29,7 @@ instance.activation = 'relu'
 instance.train_forecasting_loss = 'MSE'
 instance.train_ae_loss = 'MAE'
 instance.test_loss_name = 'MAE_RMSE'
-instance.train_temp_loss = 'TempNC'  # tempC
+instance.train_temp_loss = 'TempNC'
 
 instance.mask_mode = 'binomial'
 
@@ -39,10 +38,11 @@ instance.lambda_f = 1
 instance.lambda_temp = 1
 instance.lambda_NC = 5e-3
 
-instance.epochs = 400
-#### instance.batch_size = 4
+instance.epochs = 750
+instance.batch_size = 1
 instance.num_workers = 4
 instance.random_state = 42
+instance.model_random_seed = 3407
 instance.learning_rate = 0.0001
 instance.verbose = True
 instance.pbar_percentage = 20
@@ -52,6 +52,5 @@ instance.patience = 100
 instance.device_id = 0
 instance.n_best_test_losses = 50
 instance.lr_warmup = 5000
-instance.noise_level = 0
 instance.pbbilist_modeling = False
 

@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 from matplotlib import pyplot as plt
 from common.settings import *
@@ -6,13 +5,11 @@ from common.torch.snapshots import SnapshotManager
 from common.utils import read_config_file
 
 
-class FR3LS_Summary:
-    def __init__(self,
-                 ts_dataset_name: str,
-                 ):
-        self.ts_dataset_name = ts_dataset_name
-
+class FR3LS_DetSummary:
+    def __init__(self,):
         # space holders initialization
+
+        self.dataset_name = None
         self.experiment_path = None
         self.snapshots_dir_path = None
         self.snapshot_manager = None
@@ -24,6 +21,8 @@ class FR3LS_Summary:
         self.other_losses = None
 
         self.horizon = None
+        self.n_test_window = None
+
         self.epoch = None
         self.experiment_training_loss = None
         self.experiment_testing_loss = None
@@ -31,11 +30,18 @@ class FR3LS_Summary:
 
         self.config_dict = None
 
-    def load_experiment(self, experiment_path: str, other_losses=['MAPE', 'WAPE', 'SMAPE']):
+    def load_experiment(self, experiment_path: str):
         assert os.path.exists(experiment_path), "Path to experiment does not exist."
         self.experiment_path = experiment_path
         self.experiment_name = os.path.join(*[i for i in self.experiment_path.split(os.sep)[-1:]])
-        self.other_losses = other_losses
+        config_file_path = os.path.join(experiment_path, 'config.gin')
+        self.config_dict = read_config_file(config_file_path)
+        self.dataset_name = eval(self.config_dict['ts_dataset_name'])
+        self.horizon = eval(self.config_dict['horizon'])
+        self.n_test_window = eval(self.config_dict['n_test_windows'])
+
+        self.other_losses = ['MAPE', 'WAPE', 'SMAPE']
+
         self.snapshots_dir_path = os.path.join(experiment_path, 'snapshots')
         self.snapshot_manager = SnapshotManager(
             snapshot_dir=self.snapshots_dir_path,
@@ -44,17 +50,11 @@ class FR3LS_Summary:
         )
         self.losses = self.snapshot_manager.load_losses()
 
-        config_file_path = os.path.join(experiment_path, 'config.gin')
-        self.config_dict = read_config_file(config_file_path)
-        self.horizon = self.config_dict['horizon']
-
     def evaluate(self,):
         # Extract the experiment with the most inferior loss combination
         assert self.losses is not None, "Run load_experiment() before evaluate()"
-        if self.other_losses:
-            losses = self.losses.round(decimals=3).sort_values([self.other_losses[0] + "_loss", "testing_loss"]).head(1)
-        else:
-            losses = self.losses.round(decimals=3).sort_values(["testing_loss"]).head(1)
+
+        losses = self.losses.round(decimals=3).sort_values(["MAPE_loss", "testing_loss"]).head(1)
 
         self.epoch = losses.index[0]
         self.experiment_training_loss = losses['training_loss'].iloc[0]
@@ -68,8 +68,9 @@ class FR3LS_Summary:
         assert self.experiment_training_loss is not None, "Run evaluate() before summarize()"
         summary = {
             "EXPERIMENT_NAME": [self.experiment_name],
-            "DATASET_NAME": self.ts_dataset_name,
+            "DATASET_NAME": self.dataset_name,
             "EPOCH": self.epoch,
+            "NUM_TEST_WINDOW": self.n_test_window,
             "HORIZON": self.horizon,
             "TRAINING_LOSS": self.experiment_training_loss,
             "TESTING_LOSS": self.experiment_testing_loss,
@@ -84,11 +85,11 @@ class FR3LS_Summary:
 
         fig, axs = plt.subplots(2, 3, figsize=(10, 6))  # create a figure with a 2x3 grid of subplots
 
-        # plot each column in a panel
         axs[0, 0].plot(self.losses['training_loss'])
         axs[0, 0].set_title('training_loss')
         axs[0, 1].plot(self.losses['testing_loss'])
         axs[0, 1].set_title('testing_loss')
+
         axs[0, 2].plot(self.losses['MAPE_loss'])
         axs[0, 2].set_title('MAPE_loss')
         axs[1, 0].plot(self.losses['WAPE_loss'])
@@ -106,6 +107,8 @@ class FR3LS_Summary:
 
 
     def reset(self):
+        self.dataset_name = None
+
         self.experiment_path = None
         self.snapshots_dir_path = None
         self.losses = None
@@ -117,6 +120,8 @@ class FR3LS_Summary:
         self.other_losses = None
 
         self.horizon = None
+        self.n_test_window = None
+
         self.epoch = None
         self.experiment_training_loss = None
         self.experiment_testing_loss = None
