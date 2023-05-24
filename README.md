@@ -87,33 +87,33 @@ FR3LS
         └── fr3ls_prob_exps # Same structure as det_exps
 ```
 
-### Packages
+### Packages description
 #### `common`
-Package containing utile python files
+- Package containing utile python files
 
 #### `datasets`
-Package containing a bash script for downloading necessary datasets + already conducted experiments.  
+- Package containing a bash script for downloading necessary datasets + already conducted experiments.  
 
 #### `experiments`
-Package containing main file to be run `fr3ls_instance.py` along with experiments config files stored under `experiments/configs`.<br/>
-We are using the gin lightweight configuration framework (gin-config) allowing default parameter values to be supplied from a config file. For more information please visit the package's official GitHub repository https://github.com/google/gin-config.
+- Package containing main file to be run `fr3ls_instance.py` along with experiments config files stored under `experiments/configs`.<br/>
+- We are using the gin lightweight configuration framework (gin-config) allowing default parameter values to be supplied from a config file. For more information please visit the package's official GitHub repository https://github.com/google/gin-config.
 
 #### `models`
-Package containing lstm forecasting model in `models/f_model/lstm.py` as well as main FR3LS determinist and probabilist implementations under `models/fr3ls`.
+- Package containing lstm forecasting model in `models/f_model/lstm.py` as well as main FR3LS determinist and probabilist implementations under `models/fr3ls`.
 
 #### `notebooks`
-Summary of already conducted can be found in `notebooks/fr3ls_exps_summary.ipynb` by running the cells 2 (for determinist experiments, i.e., results reported in table III) and 3 (for probabilist experiments, i.e., results reported in table IV). 
+- Summary of already conducted can be found in `notebooks/fr3ls_exps_summary.ipynb` by running the cells 2 (for determinist experiments, i.e., results reported in table III) and 3 (for probabilist experiments, i.e., results reported in table IV). 
 
 #### `summaries`
-Package containing summary classes for both probabilist & deterministic models.
+- Package containing summary classes for both probabilist & deterministic models.
 
 #### `storage` (not tracked by Git)
-Directory where datasets as well as experiments to run are stored.
+- Directory where datasets as well as experiments to run are stored.
 
 ## Setting up Data & Conducted Experiments
-All the used datasets as well as experiments can be downloaded by running the script `bash datasets/download-data-exps.sh`. <br/>
-Deterministic datasets will be stored under `storage/datasets`, whereas probabilistic unextracted datasets will be stored at `storage/datasets/unextracted_ds` .<br/>
-Already conducted (finished) experiments will be downloaded into `storage/experiments` directory.
+- All the used datasets as well as experiments can be downloaded by running the script `bash datasets/download-data-exps.sh`. <br/>
+- Deterministic datasets will be stored under `storage/datasets`, whereas probabilistic unextracted datasets will be stored at `storage/datasets/unextracted_ds` .<br/>
+- Already conducted (finished) experiments will be downloaded into `storage/experiments` directory.
 
 
 ## Launching a new experiment
