@@ -1,7 +1,7 @@
 # FR3LS
 
-This repository contains the official implementation for the paper FR3LS: a Forecasting model with Robust and
-Reduced Redundancy Latent Series.
+This repository contains the official implementation for the paper _**FR3LS: a Forecasting model with Robust and
+Reduced Redundancy Latent Series**_.
 
 ## Requirements
 
@@ -88,26 +88,26 @@ FR3LS
 ```
 
 ### Packages
-### `common`
+#### `common`
 Package containing utile python files
 
-### `datasets`
+#### `datasets`
 Package containing a bash script for downloading necessary datasets + already conducted experiments.  
 
-### `experiments`
+#### `experiments`
 Package containing main file to be run `fr3ls_instance.py` along with experiments config files stored under `experiments/configs`.<br/>
 We are using the gin lightweight configuration framework (gin-config) allowing default parameter values to be supplied from a config file. For more information please visit the package's official GitHub repository https://github.com/google/gin-config.
 
-### `models`
+#### `models`
 Package containing lstm forecasting model in `models/f_model/lstm.py` as well as main FR3LS determinist and probabilist implementations under `models/fr3ls`.
 
-### `notebooks`
+#### `notebooks`
 Summary of already conducted can be found in `notebooks/fr3ls_exps_summary.ipynb` by running the cells 2 (for determinist experiments, i.e., results reported in table III) and 3 (for probabilist experiments, i.e., results reported in table IV). 
 
-### `summaries`
+#### `summaries`
 Package containing summary classes for both probabilist & deterministic models.
 
-### `storage` (not tracked by Git)
+#### `storage` (not tracked by Git)
 Directory where datasets as well as experiments to run are stored.
 
 ## Setting up Data & Conducted Experiments
