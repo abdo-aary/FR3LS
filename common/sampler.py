@@ -23,7 +23,7 @@ class Sampler(IterableDataset):
         :param f_input_window: the forecasting input window size (= L in the paper, and Should be < train_window)
         :param horizon: number of time points to forecast (= tau in the paper)
         :param non_overlap_batch:
-        :param skip_end_n_val: used to match TLAE's test window preparation for electricity-large (deterministic)data
+        :param skip_end_n_val: used to match TLAE's test window preparation for electricity-large (determinist) data
         :param n_test_windows: number of windows to use as test windows, (= k in the paper, and represents
                the last windows of the dataset)
         :param n_val_windows: number of windows to use as validation windows (last windows of the dataset

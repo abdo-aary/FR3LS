@@ -1,7 +1,8 @@
-import gin
 import logging
-import numpy as np
 import os
+
+import gin
+import numpy as np
 import torch as t
 from fire import Fire
 from torch.utils.data import DataLoader
@@ -13,8 +14,8 @@ from common.torch.ops import torch_dtype_dict
 from common.torch.snapshots import SnapshotManager
 from common.utils import count_parameters
 from datasets.load_data_gluonts import load_data_gluonts
-from experiments.trainers.trainer import trainer_determinist, trainer_probabilist
-from models.fr3ls.fe3ls_determinist import FR3LS_Determinist
+from experiments.trainer import trainer_determinist, trainer_probabilist
+from models.fr3ls.fr3ls_determinist import FR3LS_Determinist
 from models.fr3ls.fr3ls_probabilist import FR3LS_Probabilist
 
 
@@ -65,7 +66,7 @@ class FR3LS_Experiment(Experiment):
                  random_state: int = 42,
                  model_random_seed: int = 3407,
                  learning_rate: float = 0.001,
-                 repeat: int = 0,
+                 repeat: int = 0,  # > 0 => running multiple models with different weights initializations (not used)
                  num_workers: int = 0,
                  verbose: bool = True,
                  pbar_percentage: int = 20,
