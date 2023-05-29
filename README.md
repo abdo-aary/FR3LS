@@ -102,7 +102,8 @@ FR3LS
 - Package containing lstm forecasting model in `models/f_model/lstm.py` as well as main FR3LS determinist and probabilist implementations under `models/fr3ls`.
 
 #### `notebooks`
-- Summary of already conducted can be found in `notebooks/fr3ls_exps_summary.ipynb` by running the cells 2 (for determinist experiments, i.e., results reported in table III) and 3 (for probabilist experiments, i.e., results reported in table IV). 
+- Summary of already conducted can be found in `notebooks/fr3ls_exps_summary.ipynb` by running the cells 2 (for determinist experiments, i.e., results reported in table III) and 3 (for probabilist experiments, i.e., results reported in table IV).
+- Make sure to run this notebook by a kernel that uses packages from the virtual environment.
 
 #### `summaries`
 - Package containing summary classes for both probabilist & deterministic models.
@@ -114,7 +115,6 @@ FR3LS
 - All the used datasets as well as experiments can be downloaded by running the script `bash datasets/download-data-exps.sh`. <br/>
 - Deterministic datasets will be stored under `storage/datasets`, whereas probabilistic unextracted datasets will be stored at `storage/datasets/unextracted_ds` .<br/>
 - Already conducted (finished) experiments will be downloaded into `storage/experiments` directory.
-
 
 ## Launching a new experiment
 

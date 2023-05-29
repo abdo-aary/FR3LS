@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 
 import gin
 import numpy as np
@@ -83,6 +84,8 @@ class FR3LS_Experiment(Experiment):
                  ) -> None:
 
         t.manual_seed(random_state)
+        random.seed(random_state)
+        np.random.seed(random_state)
         t.set_default_dtype(torch_dtype_dict[used_dtype])
 
         if verbose:
@@ -90,6 +93,9 @@ class FR3LS_Experiment(Experiment):
 
         if not train_window:
             train_window = 2 * f_input_window  # w = 2 * L
+
+        if not model_random_seed:
+            model_random_seed = random.randint(1, 10000) * random_state
 
         if not ae_hidden_dims:
             if not encoder_dims:

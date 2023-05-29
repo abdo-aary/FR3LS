@@ -208,7 +208,7 @@ def trainer_probabilist(snapshot_manager: SnapshotManager,
 
     model = model.to(device)
 
-    epoch = snapshot_manager.restore(model, optimizer)
+    epoch = snapshot_manager.restore(model, optimizer, device=device)
 
     snapshot_manager.enable_time_tracking()
 
@@ -324,7 +324,7 @@ def trainer_probabilist(snapshot_manager: SnapshotManager,
         # Reload the best model
         warnings.filterwarnings("ignore", message="Warning: converting a masked element to nan")
 
-        _ = snapshot_manager.restore(model, optimizer)
+        _ = snapshot_manager.restore(model, optimizer, device=device)
         with t.no_grad():
             model.eval()
             # End of the programme, compute CRPS

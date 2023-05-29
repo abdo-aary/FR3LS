@@ -8,6 +8,8 @@ import numpy as np
 import gin
 import torch as t
 
+from common.torch.ops import default_device
+
 
 @gin.configurable()
 class SnapshotManager:
@@ -33,24 +35,28 @@ class SnapshotManager:
 
         self.enable_time_tracking()
 
-    def restore(self, model: Optional[t.nn.Module], optimizer: Optional[t.optim.Optimizer]) -> int:
+    def restore(self, model: Optional[t.nn.Module], optimizer: Optional[t.optim.Optimizer], device=None) -> int:
         """
         Restore a model and optimizer, by mutating their state, and return the epoch number on which
         the state was persisted.
 
         :param model: Model architecture, weights of which should be restored.
         :param optimizer: Optimizer instance, parameters of which should be restored.
+        :param device: Device in which one would like to upload the trained model
+
         :return: epoch number.
         """
+        device = device if device is not None else default_device()
+
         if model is not None and os.path.isfile(self.model_snapshot_file):
             if self.verbose:
                 print("Model of path \"" + self.model_snapshot_file + "\" restored successfully")
-            model.load_state_dict(t.load(self.model_snapshot_file))
+            model.load_state_dict(t.load(self.model_snapshot_file, map_location=device))
 
         if optimizer is not None and os.path.isfile(self.optimizer_snapshot_file):
             if self.verbose:
                 print("Optimizer of path \"" + self.optimizer_snapshot_file + "\" restored successfully")
-            optimizer.load_state_dict(t.load(self.optimizer_snapshot_file))
+            optimizer.load_state_dict(t.load(self.optimizer_snapshot_file, map_location=device))
 
         epoch = t.load(self.epoch_file)['epoch'] if os.path.isfile(self.epoch_file) else 0
         if os.path.isfile(self.losses_file):

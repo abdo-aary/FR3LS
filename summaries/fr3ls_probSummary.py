@@ -226,13 +226,13 @@ class FR3LS_ProbSummary:
                                   train_window=train_window,
                                   dropout=0,
                                   activation=eval(self.config_dict["activation"]),
-                                  model_random_seed=eval(self.config_dict["model_random_seed"]),
+                                  model_random_seed=eval(self.config_dict["random_state"]),
                                   )
 
         test_forecasting_loss_fn = loss_fn(eval(self.config_dict["test_loss_name"]))
-
-        _ = self.snapshot_manager.restore(model, None)
         device = default_device(device_str_id=0)
+
+        _ = self.snapshot_manager.restore(model, None, device=device)
 
         model = model.to(device)
         with t.no_grad():
