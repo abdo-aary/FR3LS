@@ -56,11 +56,11 @@ FR3LS
 │   └── load_data_gluonts.py
 ├── experiments/
 │   └── configs/
-│       ├── determinist/
-│       │   └── dataset_name.gin
-│       ├── probabilist/ # same as det
-│       ├── fr3ls_instance.py
-│       └── trainer.py
+│   │    ├── determinist/
+│   │    │   └── dataset_name.gin
+│   │    └── probabilist/ # same as det
+│   ├── fr3ls_instance.py
+│   └── trainer.py
 ├── models/
 ├── notebooks/
 ├── summaries/
