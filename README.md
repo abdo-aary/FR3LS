@@ -1,11 +1,11 @@
-# FR3LS
+# FR³LS
 
-This repository contains the official implementation for the paper _**FR3LS: a Forecasting model with Robust and
+This repository contains the official implementation for the paper _**FR³LS: a Forecasting model with Robust and
 Reduced Redundancy Latent Series**_.
 
 ## Requirements
 
-The recommended requirements for FR3LS are specified as follows:
+The recommended requirements for FR³LS are specified as follows:
 
 - _**python**_ 3.10.4
 - gin-config==0.5.0
